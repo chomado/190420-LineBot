@@ -5,23 +5,31 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using CEK.CSharp.Models;
 using CEK.CSharp;
+using Line.Messaging;
+using Microsoft.Extensions.Configuration;
 
 namespace EchoBot.Controllers
 {
     [Route("api/clova")]
     public class ClovaController : Controller
     {
-        private ClovaClient client;
+        private ClovaClient _client;
+        private IConfiguration _configuration;
 
         public ClovaController()
         {
-            client = new ClovaClient();
+            _client = new ClovaClient();
+        }
+
+        public ClovaController(IConfiguration configuration)
+        {
+            _configuration = configuration;
         }
 
         [HttpPost]
         public async Task<IActionResult> Post()
         {
-            CEKRequest request = await client.GetRequest(
+            CEKRequest request = await _client.GetRequest(
                 Request.Headers["SignatureCEK"],
                 Request.Body
             );
@@ -47,11 +55,25 @@ namespace EchoBot.Controllers
                         {
                             case "CatIntent": // "パン"
                                 {
+                                    var food = request.Request.Intent.Slots.FirstOrDefault().Value.Value;
                                     // 食べれるものが渡ってくるので何か処理をする TODO!
-                                    response.AddText(text: $"{request.Request.Intent.Slots.FirstOrDefault().Value.Value}の話ですか？");
+                                    response.AddText(text: $"{food}の話ですか？");
+
+                                    // LINE messaging に push
+                                    string accessToken = _configuration.GetValue<string>("LINEMessaginAPIKey");
+
+                                    var messagingClient = new LineMessagingClient(channelAccessToken: accessToken);
+                                    await messagingClient.PushMessageAsync(
+                                        to: request.Session.User.UserId,
+                                        messages: new List<ISendMessage>
+                                        {
+                                            new TextMessage($"{food}"),
+                                        }
+                                    );
                                     response.ShouldEndSession = false;
                                     break;
                                 }
+
                             case "ChomadoIntent": // "ちょまど"
                                 {
                                     response.AddText("ちょまどさん、さすがオトナです！素敵！すばらしい！松屋！");
