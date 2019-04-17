@@ -3,7 +3,7 @@
     <Compile Update="**\*.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Compile>
-    <None Include="**\*.csproj" >
+    <None Include="**\*.csproj" Exclude="bin\**\*" >
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="PostDeployScripts\*.*" >
